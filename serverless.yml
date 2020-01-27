@@ -1,0 +1,40 @@
+service: peacelife-contact-lambda
+
+functions:
+  peacelifeContactLambda:
+    handler: org.http4k.serverless.lambda.LambdaFunction::handle
+    events:
+      - http: ANY /
+      - http: 'ANY {proxy+}'
+    environment:
+      HTTP4K_BOOTSTRAP_CLASS: com.peacelife.PeaceLifeLambda
+      EVENT_TOPIC:
+        Ref: ContactUsEmailTopic
+
+package:
+  artifact: target/PeacelifeContactLambda-1.0-SNAPSHOT.jar
+
+provider:
+  name: aws
+  runtime: java8
+  memorySize: 512
+  timeout: 300
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - sns:Publish
+        - sns:GetTopicAttributes
+      Resource:
+        - Ref: ContactUsEmailTopic
+  tags:
+    Name: "peacelife-contact-lambda"
+  stackTags:
+    Name: "peacelife-contact-lambda"
+  profile: ask-user
+
+resources:
+  Resources:
+    ContactUsEmailTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: "Topic invoked from Contact Us lambda and sill have an email as subscriber"
