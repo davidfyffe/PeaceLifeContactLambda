@@ -22,7 +22,7 @@ import org.joda.time.DateTime
 data class MessageBody(val name: String, val email: String, val message: String)
 
 fun main() {
-    internalRoute().asServer(SunHttp(1234))
+    internalRoute().asServer(SunHttp(1234)).start()
 }
 
 object PeaceLifeLambda : AppLoader {
@@ -42,9 +42,9 @@ val corsPolicy : CorsPolicy =
 // However, it will by default run the request, just deny the sender the response. Fuck that.
 val myCorsFilter = Filter { next: HttpHandler ->
     { request: Request ->
-        val allowedOrigins = Header.required("access-control-allow-origin")
-        val origin = allowedOrigins(request)
-        if(origin == "null") Response(PRECONDITION_FAILED).body("Incorrect CORS origin supplied") else next(request)
+        val originLens = Header.optional("Origin")
+        val origin = originLens(request)
+        if(origin != null && origin == ORIGIN) next(request) else Response(PRECONDITION_FAILED).body("Incorrect CORS origin supplied")
     }
 }
 
