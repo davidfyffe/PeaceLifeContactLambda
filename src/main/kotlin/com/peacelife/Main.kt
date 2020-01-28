@@ -28,8 +28,7 @@ fun internalRoute(sns: AmazonSNS = AmazonSNSClientBuilder.standard().build()): R
 }
 
 private fun invokeSNS(sns : AmazonSNS): HttpHandler = { request: Request ->
-    println("Dumping headers for logs")
-    println(request.headers)
+    println("Request Headers: ${request.headers}")
 
     try {
         val bodyLens = Body.auto<MessageBody>().toLens()
@@ -46,8 +45,7 @@ private fun invokeSNS(sns : AmazonSNS): HttpHandler = { request: Request ->
             publish(
                     PublishRequest(getProperty("EVENT_TOPIC"), emailMessage)
             )
-        }
-
+        }.run(::println)
         Response(OK).body("Message Sent.")
     } catch (exception: java.lang.Exception) {
         println("Exception in lambda with request ${request.bodyString()} \n ${exception.message} \n ${exception.stackTrace.asSequence().joinToString("\n")}")
