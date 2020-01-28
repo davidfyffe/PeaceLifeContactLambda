@@ -1,11 +1,22 @@
 service: peacelife-contact-lambda
 
+plugins:
+  - serverless-prune-plugin
+
+custom:
+  prune:
+    automatic: true
+    number: 3
+
 functions:
   peacelifeContactLambda:
     handler: org.http4k.serverless.lambda.LambdaFunction::handle
     events:
-      - http: ANY /
-      - http: 'ANY {proxy+}'
+      - http:
+          path: contact
+          method: post
+          cors: true
+
     environment:
       HTTP4K_BOOTSTRAP_CLASS: com.peacelife.PeaceLifeLambda
       EVENT_TOPIC:

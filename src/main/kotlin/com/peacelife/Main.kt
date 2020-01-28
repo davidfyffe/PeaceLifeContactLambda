@@ -6,6 +6,8 @@ import com.amazonaws.services.sns.model.PublishRequest
 import org.http4k.core.*
 import org.http4k.core.Status.Companion.BAD_REQUEST
 import org.http4k.core.Status.Companion.OK
+import org.http4k.filter.CorsPolicy
+import org.http4k.filter.ServerFilters
 import org.http4k.format.Jackson.auto
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
@@ -21,9 +23,16 @@ object PeaceLifeLambda : AppLoader {
     }
 }
 
+val corsPolicy : CorsPolicy =
+        CorsPolicy(origins = listOf("https://davidfyffe.github.io"),
+                headers = listOf("content-type", "Origin"),
+                methods = listOf(Method.POST, Method.OPTIONS))
+
 fun internalRoute(sns: AmazonSNS = AmazonSNSClientBuilder.standard().build()): RoutingHttpHandler {
-    return routes(
-            "/contact" bind Method.POST to invokeSNS(sns)
+    return ServerFilters.Cors(corsPolicy).then(
+            routes(
+                    "/contact" bind Method.POST to invokeSNS(sns)
+            )
     )
 }
 
@@ -51,7 +60,6 @@ private fun invokeSNS(sns : AmazonSNS): HttpHandler = { request: Request ->
         println("Exception in lambda with request ${request.bodyString()} \n ${exception.message} \n ${exception.stackTrace.asSequence().joinToString("\n")}")
         Response(BAD_REQUEST).body("Error sending message.")
     }
-
 }
 
 fun getProperty(property: String) = try {
