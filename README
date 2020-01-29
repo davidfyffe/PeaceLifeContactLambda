@@ -1,2 +1,0 @@
-mvn package
-serverless deploy --aws-profile ask-user --stage prod

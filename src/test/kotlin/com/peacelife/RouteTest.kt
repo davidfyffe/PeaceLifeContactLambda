@@ -10,7 +10,9 @@ import io.mockk.impl.annotations.MockK
 import org.http4k.core.Method
 import org.http4k.core.Request
 import org.http4k.core.Status
+import org.http4k.core.with
 import org.http4k.hamkrest.hasStatus
+import org.http4k.lens.Header
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
@@ -19,6 +21,7 @@ class RouteTest {
     @MockK
     lateinit var mockSns : AmazonSNS
     private val requestSpy: CapturingSlot<PublishRequest> = slot()
+    private val originHeader = Header.required("Origin")
 
     init {
         System.setProperty("EVENT_TOPIC", "sns:arn")
@@ -29,7 +32,9 @@ class RouteTest {
     @Test
     fun shouldCallSns() {
         val messageBody = MessageBody(name = "David", email = "my.email", message = "A message")
-        val post = Request(Method.POST, "/contact").body(jacksonObjectMapper().writeValueAsString(messageBody))
+        val post = Request(Method.POST, "/contact")
+                .body(jacksonObjectMapper().writeValueAsString(messageBody))
+                .with( originHeader of ORIGIN)
 
         val response = internalRoute(mockSns).invoke(post)
 
@@ -48,6 +53,7 @@ class RouteTest {
     @Test
     fun shouldHandleBadBody() {
         val post = Request(Method.POST, "/contact").body("{\"name\":\"David\"}")
+                .with( originHeader of ORIGIN)
         val response = internalRoute(mockSns).invoke(post)
 
         verify(exactly = 0) { mockSns.publish(any()) }
@@ -55,4 +61,20 @@ class RouteTest {
 
     }
 
+    @Test
+    fun shouldReturn412WhenOriginNotCorrect() {
+        val post = Request(Method.POST, "/contact")
+                .with( originHeader of "blah")
+        val response = internalRoute(mockSns).invoke(post)
+        verify(exactly = 0) { mockSns.publish(any()) }
+        assertThat( response, hasStatus(Status.PRECONDITION_FAILED))
+    }
+
+    @Test
+    fun shouldReturn412WhenOriginNotIncluded() {
+        val post = Request(Method.POST, "/contact")
+        val response = internalRoute(mockSns).invoke(post)
+        verify(exactly = 0) { mockSns.publish(any()) }
+        assertThat( response, hasStatus(Status.PRECONDITION_FAILED))
+    }
 }
