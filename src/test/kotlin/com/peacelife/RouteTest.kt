@@ -13,6 +13,7 @@ import org.http4k.core.Status
 import org.http4k.core.with
 import org.http4k.hamkrest.hasStatus
 import org.http4k.lens.Header
+import org.junit.Before
 import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
@@ -20,7 +21,7 @@ class RouteTest {
 
     @MockK
     lateinit var mockSns : AmazonSNS
-    private val requestSpy: CapturingSlot<PublishRequest> = slot()
+    private val requestSpy= slot<PublishRequest>()
     private val originHeader = Header.required("Origin")
 
     init {
@@ -34,7 +35,7 @@ class RouteTest {
         val messageBody = MessageBody(name = "David", email = "my.email", message = "A message")
         val post = Request(Method.POST, "/contact")
                 .body(jacksonObjectMapper().writeValueAsString(messageBody))
-                .with( originHeader of ORIGIN)
+                .with( originHeader of ORIGIN[0])
 
         val response = internalRoute(mockSns).invoke(post)
 
@@ -53,7 +54,7 @@ class RouteTest {
     @Test
     fun shouldHandleBadBody() {
         val post = Request(Method.POST, "/contact").body("{\"name\":\"David\"}")
-                .with( originHeader of ORIGIN)
+                .with( originHeader of ORIGIN[0])
         val response = internalRoute(mockSns).invoke(post)
 
         verify(exactly = 0) { mockSns.publish(any()) }

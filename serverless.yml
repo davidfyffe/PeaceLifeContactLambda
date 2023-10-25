@@ -6,16 +6,15 @@ plugins:
 custom:
   prune:
     automatic: true
-    number: 3
+    number: 10
 
 functions:
   peacelifeContactLambda:
-    handler: org.http4k.serverless.lambda.LambdaFunction::handle
+    handler: com.peacelife.PeaceLifeLambdaEntryClass
     events:
-      - http:
-          path: contact
+      - httpApi:
+          path: /contact
           method: post
-          cors: true
 
     environment:
       HTTP4K_BOOTSTRAP_CLASS: com.peacelife.PeaceLifeLambda
@@ -27,9 +26,11 @@ package:
 
 provider:
   name: aws
-  runtime: java8
+  runtime: java17
   memorySize: 512
   timeout: 300
+  httpApi:
+    cors: true
   iamRoleStatements:
     - Effect: Allow
       Action:

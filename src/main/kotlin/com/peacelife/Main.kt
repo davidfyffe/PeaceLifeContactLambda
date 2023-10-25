@@ -4,18 +4,21 @@ import com.amazonaws.services.sns.AmazonSNS
 import com.amazonaws.services.sns.AmazonSNSClientBuilder
 import com.amazonaws.services.sns.model.PublishRequest
 import org.http4k.core.*
-import org.http4k.core.Status.Companion.BAD_REQUEST
-import org.http4k.core.Status.Companion.OK
 import org.http4k.core.Status.Companion.PRECONDITION_FAILED
 import org.http4k.filter.CorsPolicy
+import org.http4k.filter.OriginPolicy
 import org.http4k.filter.ServerFilters
-import org.http4k.format.Jackson.auto
 import org.http4k.lens.Header
 import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
+import org.http4k.filter.*
+import org.http4k.core.Status.Companion.BAD_REQUEST
+import org.http4k.core.Status.Companion.OK
+import org.http4k.format.Jackson.auto
 import org.http4k.server.SunHttp
 import org.http4k.server.asServer
+import org.http4k.serverless.ApiGatewayV2LambdaFunction
 import org.http4k.serverless.AppLoader
 import org.joda.time.DateTime
 
@@ -30,11 +33,12 @@ object PeaceLifeLambda : AppLoader {
         return internalRoute()
     }
 }
+@Suppress("unused")
+class PeaceLifeLambdaEntryClass : ApiGatewayV2LambdaFunction(PeaceLifeLambda)
 
-const val ORIGIN = "https://davidfyffe.github.io"
-
+val ORIGIN = listOf("https://davidfyffe.github.io", "https://peacelifeyoga.co.uk")
 val corsPolicy : CorsPolicy =
-        CorsPolicy(origins = listOf(ORIGIN),
+        CorsPolicy(originPolicy = OriginPolicy.AnyOf(ORIGIN),
                 headers = listOf("content-type", "Origin"),
                 methods = listOf(Method.POST, Method.OPTIONS))
 
@@ -44,7 +48,7 @@ val myCorsFilter = Filter { next: HttpHandler ->
     { request: Request ->
         val originLens = Header.optional("Origin")
         val origin = originLens(request)
-        if(origin != null && origin == ORIGIN) next(request) else Response(PRECONDITION_FAILED).body("Incorrect CORS origin supplied")
+        if(origin != null && ORIGIN.contains(origin)) next(request) else Response(PRECONDITION_FAILED).body("Incorrect CORS origin supplied")
     }
 }
 
